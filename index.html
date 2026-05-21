@@ -91,8 +91,17 @@ async function loadMovies() {
   const releaseAfter =
     document.getElementById("releaseAfter").value + "-01";
 
-  const releaseBefore =
-    document.getElementById("releaseBefore").value + "-31";
+  const beforeValue =
+  document.getElementById("releaseBefore").value;
+
+const [beforeYear, beforeMonth] =
+  beforeValue.split("-");
+
+const releaseBefore = new Date(
+  beforeYear,
+  beforeMonth,
+  0
+).toISOString().split("T")[0];d("releaseBefore").value + "-31";
 
   const rating =
     document.getElementById("rating").value;
