@@ -86,7 +86,8 @@ img {
 
 <script>
 const TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3Yjk2NDhiNTFlMDhjNjAxN2I1OWNmNTc2YmUyNWUwZiIsIm5iZiI6MTc3OTQwMDA1NC45NTM5OTk4LCJzdWIiOiI2YTBmN2Q3NjQ5NGNhM2I3ZTI0MDI3ZTMiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.rBseYnlh4Faaqx-YrfGz1dTqv0aMeg4gUP-97EIZ6Xw";
-
+const OMDB_KEY = "f35a8f37";
+  
 async function loadMovies() {
   const releaseAfter =
     document.getElementById("releaseAfter").value + "-01";
@@ -116,7 +117,6 @@ const releaseBefore = new Date(
     `https://api.themoviedb.org/3/discover/movie?` +
     `primary_release_date.gte=${releaseAfter}` +
     `&primary_release_date.lte=${releaseBefore}` +
-    `&vote_average.gte=${rating}` +
     `&with_runtime.lte=${runtime}` +
     `&sort_by=vote_average.desc` +
     `&vote_count.gte=500`;
@@ -133,26 +133,48 @@ const releaseBefore = new Date(
   const data = await response.json();
 
   const detailedMovies = await Promise.all(
-    data.results.slice(0, 20).map(async movie => {
-      const detailsResponse = await fetch(
-        `https://api.themoviedb.org/3/movie/${movie.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${TOKEN}`
-          }
+  data.results.slice(0, 20).map(async movie => {
+
+    // TMDB details
+    const detailsResponse = await fetch(
+      `https://api.themoviedb.org/3/movie/${movie.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${TOKEN}`
         }
-      );
+      }
+    );
 
-      const details = await detailsResponse.json();
+    const details = await detailsResponse.json();
 
-      return {
-        ...movie,
-        runtime: details.runtime
-      };
-    })
-  );
+    // OMDb IMDb rating lookup
+    let imdbRating = "?";
 
-  render(detailedMovies);
+    if (details.imdb_id) {
+      try {
+        const omdbResponse = await fetch(
+          `https://www.omdbapi.com/?apikey=${OMDB_KEY}&i=${details.imdb_id}`
+        );
+
+        const omdb = await omdbResponse.json();
+
+        imdbRating = omdb.imdbRating || "?";
+      } catch (e) {
+        console.log(e);
+      }
+    }
+
+    return {
+      ...movie,
+      runtime: details.runtime,
+      imdbRating
+    };
+  })
+);
+const filteredMovies = detailedMovies.filter(movie =>
+  parseFloat(movie.imdbRating) >= parseFloat(rating)
+);
+  render(filteredMovies);
 }
 
 function render(movies) {
@@ -162,7 +184,7 @@ function render(movies) {
     <div class="movie">
       <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}">
       <h2>${movie.title}</h2>
-      <p>⭐ ${movie.vote_average}</p>
+      <p>⭐ IMDb ${movie.imdbRating}</p>
       <p>📅 ${movie.release_date}</p>
       <p>⏱️ ${movie.runtime || "?"} mins</p>
       <p>${movie.overview}</p>
