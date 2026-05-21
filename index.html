@@ -52,4 +52,87 @@ img {
   <label>
     Minimum Rating
     <input type="number" id="rating" value="7" step="0.1" min="0" max="10">
-  </
+  </label>
+
+  <label>
+    Genre
+    <select id="genre">
+      <option value="">Any</option>
+      <option value="28">Action</option>
+      <option value="12">Adventure</option>
+      <option value="16">Animation</option>
+      <option value="35">Comedy</option>
+      <option value="80">Crime</option>
+      <option value="18">Drama</option>
+      <option value="878">Sci-Fi</option>
+      <option value="53">Thriller</option>
+    </select>
+  </label>
+
+  <label>
+    Max Runtime (mins)
+    <input type="number" id="runtime" value="150">
+  </label>
+
+  <button onclick="loadMovies()">Find Movies</button>
+</div>
+
+<div id="results"></div>
+
+<script>
+const TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3Yjk2NDhiNTFlMDhjNjAxN2I1OWNmNTc2YmUyNWUwZiIsIm5iZiI6MTc3OTQwMDA1NC45NTM5OTk4LCJzdWIiOiI2YTBmN2Q3NjQ5NGNhM2I3ZTI0MDI3ZTMiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.rBseYnlh4Faaqx-YrfGz1dTqv0aMeg4gUP-97EIZ6Xw";
+
+async function loadMovies() {
+  const releaseAfter =
+    document.getElementById("releaseAfter").value + "-01";
+
+  const rating =
+    document.getElementById("rating").value;
+
+  const genre =
+    document.getElementById("genre").value;
+
+  const runtime =
+    document.getElementById("runtime").value;
+
+  const url =
+    `https://api.themoviedb.org/3/discover/movie?` +
+    `primary_release_date.gte=${releaseAfter}` +
+    `&vote_average.gte=${rating}` +
+    `&with_runtime.lte=${runtime}` +
+    `&sort_by=vote_average.desc` +
+    `&vote_count.gte=500`;
+
+  const finalUrl =
+    genre ? `${url}&with_genres=${genre}` : url;
+
+  const response = await fetch(finalUrl, {
+    headers: {
+      Authorization: `Bearer ${TOKEN}`
+    }
+  });
+
+  const data = await response.json();
+
+  render(data.results.slice(0, 20));
+}
+
+function render(movies) {
+  const results = document.getElementById("results");
+
+  results.innerHTML = movies.map(movie => `
+    <div class="movie">
+      <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}">
+      <h2>${movie.title}</h2>
+      <p>⭐ ${movie.vote_average}</p>
+      <p>📅 ${movie.release_date}</p>
+      <p>${movie.overview}</p>
+    </div>
+  `).join("");
+}
+
+loadMovies();
+</script>
+
+</body>
+</html>
