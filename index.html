@@ -1,111 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Movie Browser</title>
-
-<style>
-body {
-  font-family: system-ui;
-  margin: 0;
-  padding: 16px;
-}
-
-h1 { margin-top: 0; }
-
-.controls {
-  display: grid;
-  gap: 12px;
-}
-
-input, select, button {
-  padding: 12px;
-  font-size: 16px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.movie {
-  border: 1px solid #ccc;
-  border-radius: 12px;
-  padding: 12px;
-  margin-top: 12px;
-}
-
-img {
-  width: 100%;
-  border-radius: 8px;
-}
-</style>
-</head>
-<body>
-
-<h1>Movie Browser</h1>
-
-<div class="controls">
-<label>
-  Released After
-  <input type="month" id="releaseAfter" value="2024-01">
-</label>
-
-<label>
-  Released Before
-  <input type="month" id="releaseBefore" value="2026-04">
-</label>
-
-  <label>
-    Minimum Rating
-    <input type="number" id="rating" value="7" step="0.1" min="0" max="10">
-  </label>
-
-  <label>
-    Genre
-    <select id="genre">
-      <option value="">Any</option>
-      <option value="28">Action</option>
-      <option value="12">Adventure</option>
-      <option value="16">Animation</option>
-      <option value="35">Comedy</option>
-      <option value="80">Crime</option>
-      <option value="18">Drama</option>
-      <option value="878">Sci-Fi</option>
-      <option value="53">Thriller</option>
-    </select>
-  </label>
-
-  <label>
-    Max Runtime (mins)
-    <input type="number" id="runtime" value="150">
-  </label>
-
-  <button onclick="loadMovies()">Find Movies</button>
-</div>
-
-<div id="results"></div>
-
 <script>
 const TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3Yjk2NDhiNTFlMDhjNjAxN2I1OWNmNTc2YmUyNWUwZiIsIm5iZiI6MTc3OTQwMDA1NC45NTM5OTk4LCJzdWIiOiI2YTBmN2Q3NjQ5NGNhM2I3ZTI0MDI3ZTMiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.rBseYnlh4Faaqx-YrfGz1dTqv0aMeg4gUP-97EIZ6Xw";
+
 const OMDB_KEY = "f35a8f37";
-  
+
 async function loadMovies() {
+
   const releaseAfter =
     document.getElementById("releaseAfter").value + "-01";
 
   const beforeValue =
-  document.getElementById("releaseBefore").value;
+    document.getElementById("releaseBefore").value;
 
-const [beforeYear, beforeMonth] =
-  beforeValue.split("-");
+  const [beforeYear, beforeMonth] =
+    beforeValue.split("-");
 
-const releaseBefore = new Date(
-  beforeYear,
-  beforeMonth,
-  0
-).toISOString().split("T")[0];
+  const releaseBefore = new Date(
+    beforeYear,
+    beforeMonth,
+    0
+  ).toISOString().split("T")[0];
 
   const rating =
-    document.getElementById("rating").value;
+    parseFloat(document.getElementById("rating").value);
 
   const genre =
     document.getElementById("genre").value;
@@ -113,31 +29,28 @@ const releaseBefore = new Date(
   const runtime =
     document.getElementById("runtime").value;
 
+  document.getElementById("results").innerHTML =
+    "<p>Loading...</p>";
+
   const url =
     `https://api.themoviedb.org/3/discover/movie?` +
     `primary_release_date.gte=${releaseAfter}` +
     `&primary_release_date.lte=${releaseBefore}` +
     `&with_runtime.lte=${runtime}` +
+    `&with_original_language=en` +
+    `&include_adult=false` +
     `&sort_by=vote_average.desc` +
-    `&vote_count.gte=20`;
+    `&vote_count.gte=100`;
 
   const finalUrl =
     genre ? `${url}&with_genres=${genre}` : url;
 
-  const response = await fetch(finalUrl, {
-    headers: {
-      Authorization: `Bearer ${TOKEN}`
-    }
-  });
+  let allResults = [];
 
-  const data = await response.json();
+  for (let page = 1; page <= 5; page++) {
 
-  const detailedMovies = await Promise.all(
-  data.results.slice(0, 20).map(async movie => {
-
-    // TMDB details
-    const detailsResponse = await fetch(
-      `https://api.themoviedb.org/3/movie/${movie.id}`,
+    const response = await fetch(
+      `${finalUrl}&page=${page}`,
       {
         headers: {
           Authorization: `Bearer ${TOKEN}`
@@ -145,56 +58,112 @@ const releaseBefore = new Date(
       }
     );
 
-    const details = await detailsResponse.json();
+    const data = await response.json();
 
-    // OMDb IMDb rating lookup
-    let imdbRating = "?";
+    allResults.push(...data.results);
+  }
 
-    if (details.imdb_id) {
+  const detailedMovies = await Promise.all(
+    allResults.map(async movie => {
+
       try {
-        const omdbResponse = await fetch(
-          `https://www.omdbapi.com/?apikey=${OMDB_KEY}&i=${details.imdb_id}`
+
+        // TMDB details
+        const detailsResponse = await fetch(
+          `https://api.themoviedb.org/3/movie/${movie.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${TOKEN}`
+            }
+          }
         );
 
-        const omdb = await omdbResponse.json();
+        const details = await detailsResponse.json();
 
-        imdbRating = omdb.imdbRating || "?";
+        // OMDb IMDb rating
+        let imdbRating = "?";
+
+        if (details.imdb_id) {
+
+          try {
+
+            const omdbResponse = await fetch(
+              `https://www.omdbapi.com/?apikey=${OMDB_KEY}&i=${details.imdb_id}`
+            );
+
+            const omdb = await omdbResponse.json();
+
+            imdbRating = omdb.imdbRating || "?";
+
+          } catch (e) {
+            console.log("OMDb error", e);
+          }
+        }
+
+        return {
+          ...movie,
+          runtime: details.runtime,
+          imdbRating
+        };
+
       } catch (e) {
-        console.log(e);
-      }
-    }
 
-    return {
-      ...movie,
-      runtime: details.runtime,
-      imdbRating
-    };
-  })
-);
-const filteredMovies = detailedMovies.filter(movie =>
-  parseFloat(movie.imdbRating) >= parseFloat(rating)
-);
-  console.log(filteredMovies);
+        console.log("Movie detail error", e);
+
+        return null;
+      }
+    })
+  );
+
+  // Remove failed entries
+  const validMovies =
+    detailedMovies.filter(movie => movie);
+
+  // Remove duplicates
+  const uniqueMovies = Array.from(
+    new Map(
+      validMovies.map(movie => [movie.id, movie])
+    ).values()
+  );
+
+  // IMDb rating filter
+  const filteredMovies = uniqueMovies.filter(movie =>
+    parseFloat(movie.imdbRating) >= rating
+  );
+
   render(filteredMovies);
 }
 
 function render(movies) {
-  const results = document.getElementById("results");
 
-  results.innerHTML = movies.map(movie => `
-    <div class="movie">
-      <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}">
-      <h2>${movie.title}</h2>
-      <p>⭐ IMDb ${movie.imdbRating}</p>
-      <p>📅 ${movie.release_date}</p>
-      <p>⏱️ ${movie.runtime || "?"} mins</p>
-      <p>${movie.overview}</p>
-    </div>
-  `).join("");
+  const results =
+    document.getElementById("results");
+
+  results.innerHTML =
+    `<p><strong>${movies.length} movies found</strong></p>` +
+
+    movies.map(movie => `
+
+      <div class="movie">
+
+        <img
+          src="https://image.tmdb.org/t/p/w500${movie.poster_path}"
+        >
+
+        <h2>${movie.title}</h2>
+
+        <p>⭐ IMDb ${movie.imdbRating}</p>
+
+        <p>📅 ${movie.release_date}</p>
+
+        <p>⏱️ ${movie.runtime || "?"} mins</p>
+
+        <p>${movie.overview}</p>
+
+      </div>
+
+    `).join("");
 }
 
 loadMovies();
 </script>
-
-</body>
-</html>
