@@ -1,14 +1,153 @@
-<script>
-const TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3Yjk2NDhiNTFlMDhjNjAxN2I1OWNmNTc2YmUyNWUwZiIsIm5iZiI6MTc3OTQwMDA1NC45NTM5OTk4LCJzdWIiOiI2YTBmN2Q3NjQ5NGNhM2I3ZTI0MDI3ZTMiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.rBseYnlh4Faaqx-YrfGz1dTqv0aMeg4gUP-97EIZ6Xw";
+<!DOCTYPE html>
+<html lang="en">
 
-const OMDB_KEY = "f35a8f37";
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Movie Browser</title>
+
+<style>
+
+body {
+  font-family: system-ui;
+  margin: 0;
+  padding: 16px;
+  background: #111;
+  color: #fff;
+}
+
+h1 {
+  margin-top: 0;
+}
+
+.controls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+input,
+select,
+button {
+  padding: 12px;
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+.movie {
+  background: #1b1b1b;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 16px;
+}
+
+.movie img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.movie h2 {
+  margin-bottom: 8px;
+}
+
+.summary {
+  opacity: 0.8;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Movie Browser</h1>
+
+<div class="controls">
+
+  <label>
+    Released After
+    <input
+      type="month"
+      id="releaseAfter"
+      value="2024-01"
+    >
+  </label>
+
+  <label>
+    Released Before
+    <input
+      type="month"
+      id="releaseBefore"
+      value="2026-04"
+    >
+  </label>
+
+  <label>
+    Minimum IMDb Rating
+    <input
+      type="number"
+      id="rating"
+      value="7"
+      step="0.1"
+      min="0"
+      max="10"
+    >
+  </label>
+
+  <label>
+    Genre
+    <select id="genre">
+      <option value="">Any</option>
+      <option value="28">Action</option>
+      <option value="12">Adventure</option>
+      <option value="16">Animation</option>
+      <option value="35">Comedy</option>
+      <option value="80">Crime</option>
+      <option value="18">Drama</option>
+      <option value="878">Sci-Fi</option>
+      <option value="53">Thriller</option>
+    </select>
+  </label>
+
+  <label>
+    Max Runtime (mins)
+    <input
+      type="number"
+      id="runtime"
+      value="150"
+    >
+  </label>
+
+  <button onclick="loadMovies()">
+    Find Movies
+  </button>
+
+</div>
+
+<div id="results"></div>
+
+<script>
+
+const TOKEN =
+"eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3Yjk2NDhiNTFlMDhjNjAxN2I1OWNmNTc2YmUyNWUwZiIsIm5iZiI6MTc3OTQwMDA1NC45NTM5OTk4LCJzdWIiOiI2YTBmN2Q3NjQ5NGNhM2I3ZTI0MDI3ZTMiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.rBseYnlh4Faaqx-YrfGz1dTqv0aMeg4gUP-97EIZ6Xw";
+
+const OMDB_KEY =
+"f35a8f37";
 
 async function loadMovies() {
 
   const results =
     document.getElementById("results");
 
-  results.innerHTML = "<p>Loading...</p>";
+  results.innerHTML =
+    "<p>Loading...</p>";
 
   try {
 
@@ -28,7 +167,9 @@ async function loadMovies() {
     ).toISOString().split("T")[0];
 
     const rating =
-      parseFloat(document.getElementById("rating").value);
+      parseFloat(
+        document.getElementById("rating").value
+      );
 
     const genre =
       document.getElementById("genre").value;
@@ -47,7 +188,9 @@ async function loadMovies() {
       `&vote_count.gte=100`;
 
     const finalUrl =
-      genre ? `${url}&with_genres=${genre}` : url;
+      genre
+        ? `${url}&with_genres=${genre}`
+        : url;
 
     let allResults = [];
 
@@ -84,7 +227,8 @@ async function loadMovies() {
             }
           );
 
-          const details = await detailsResponse.json();
+          const details =
+            await detailsResponse.json();
 
           let imdbRating = null;
 
@@ -96,9 +240,11 @@ async function loadMovies() {
                 `https://www.omdbapi.com/?apikey=${OMDB_KEY}&i=${details.imdb_id}`
               );
 
-              const omdb = await omdbResponse.json();
+              const omdb =
+                await omdbResponse.json();
 
-              imdbRating = parseFloat(omdb.imdbRating);
+              imdbRating =
+                parseFloat(omdb.imdbRating);
 
             } catch (e) {
               console.log("OMDb error", e);
@@ -113,11 +259,16 @@ async function loadMovies() {
 
         } catch (e) {
 
-          console.log("Movie detail error", e);
+          console.log(
+            "Movie detail error",
+            e
+          );
 
           return null;
         }
+
       })
+
     );
 
     const validMovies =
@@ -129,7 +280,9 @@ async function loadMovies() {
 
     const uniqueMovies = Array.from(
       new Map(
-        validMovies.map(movie => [movie.id, movie])
+        validMovies.map(movie =>
+          [movie.id, movie]
+        )
       ).values()
     );
 
@@ -150,7 +303,10 @@ function render(movies) {
     document.getElementById("results");
 
   results.innerHTML =
-    `<p><strong>${movies.length} movies found</strong></p>` +
+
+    `<p><strong>${movies.length} movies found</strong></p>`
+
+    +
 
     movies.map(movie => `
 
@@ -164,13 +320,21 @@ function render(movies) {
 
         <h2>${movie.title}</h2>
 
-        <p>⭐ IMDb ${movie.imdbRating}</p>
+        <p>
+          ⭐ IMDb ${movie.imdbRating}
+        </p>
 
-        <p>📅 ${movie.release_date}</p>
+        <p>
+          📅 ${movie.release_date}
+        </p>
 
-        <p>⏱️ ${movie.runtime || "?"} mins</p>
+        <p>
+          ⏱️ ${movie.runtime || "?"} mins
+        </p>
 
-        <p>${movie.overview || ""}</p>
+        <p class="summary">
+          ${movie.overview || ""}
+        </p>
 
       </div>
 
@@ -178,4 +342,8 @@ function render(movies) {
 }
 
 loadMovies();
+
 </script>
+
+</body>
+</html>
